@@ -146,7 +146,10 @@ def fillYCPT(bayesNet, gameState):
 
     yFactor = bn.Factor([Y_POS_VAR], [], bayesNet.variableDomainsDict())
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    yFactor.setProbability({Y_POS_VAR: BOTH_TOP_VAL}, PROB_BOTH_TOP)
+    yFactor.setProbability({Y_POS_VAR: BOTH_BOTTOM_VAL}, PROB_BOTH_BOTTOM)
+    yFactor.setProbability({Y_POS_VAR: LEFT_TOP_VAL}, PROB_ONLY_LEFT_TOP)
+    yFactor.setProbability({Y_POS_VAR: LEFT_BOTTOM_VAL}, PROB_ONLY_LEFT_BOTTOM)
     bayesNet.setCPT(Y_POS_VAR, yFactor)
 
 def fillHouseCPT(bayesNet, gameState):
@@ -208,10 +211,49 @@ def fillObsCPT(bayesNet, gameState):
     house and ghost house are assigned to the same cell.
     """
 
-    bottomLeftPos, topLeftPos, bottomRightPos, topRightPos = gameState.getPossibleHouses()
+    # bottomLeftPos, topLeftPos, bottomRightPos, topRightPos = gameState.getPossibleHouses()
 
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # Keep track of which quadrant we are in
+    houseVals = [BOTTOM_LEFT_VAL, TOP_LEFT_VAL, BOTTOM_RIGHT_VAL, TOP_RIGHT_VAL]
+
+    for housePos, val in zip(gameState.getPossibleHouses(), houseVals):
+        for obsPos in gameState.getHouseWalls(housePos):
+            obsVar = OBS_VAR_TEMPLATE % obsPos
+            obsFactor = bn.Factor([obsVar], HOUSE_VARS,
+                                  bayesNet.variableDomainsDict())
+            for assignment in obsFactor.getAllPossibleAssignmentDicts():
+                ghostAssignment = assignment[GHOST_HOUSE_VAR]
+                foodAssignment = assignment[FOOD_HOUSE_VAR]
+
+                # Determine probabilities
+                probRed = 0
+                probBlue = 0
+                probNone = 1
+                if ghostAssignment == val:
+                    probRed = PROB_GHOST_RED
+                    probBlue = 1 - probRed
+                    probNone = 0
+                if foodAssignment == val:
+                    probRed = PROB_FOOD_RED
+                    probBlue = 1 - probRed
+                    probNone = 0
+
+                # Set probabilities
+                obsFactor.setProbability({GHOST_HOUSE_VAR: ghostAssignment,
+                                          obsVar: RED_OBS_VAL,
+                                          FOOD_HOUSE_VAR: foodAssignment},
+                                         probRed)
+                obsFactor.setProbability({GHOST_HOUSE_VAR: ghostAssignment,
+                                          obsVar: BLUE_OBS_VAL,
+                                          FOOD_HOUSE_VAR: foodAssignment},
+                                         probBlue)
+                obsFactor.setProbability({GHOST_HOUSE_VAR: ghostAssignment,
+                                          obsVar: NO_OBS_VAL,
+                                          FOOD_HOUSE_VAR: foodAssignment},
+                                         probNone)
+            bayesNet.setCPT(obsVar, obsFactor)
+
 
 def getMostLikelyFoodHousePosition(evidence, bayesNet, eliminationOrder):
     """
