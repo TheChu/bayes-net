@@ -369,12 +369,20 @@ class VPIAgent(BayesAgent):
         *Do not* take into account the "time elapsed" cost of traveling to each
         of the houses---this is calculated elsewhere in the code.
         """
-
-        leftExpectedValue = 0
-        rightExpectedValue = 0
-
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        factor = inference.inferenceByVariableElimination(self.bayesNet,
+                                                          [FOOD_HOUSE_VAR, GHOST_HOUSE_VAR],
+                                                          evidence,
+                                                          eliminationOrder)
+        leftProb = [factor.getProbability(a) for a \
+                    in factor.getAllPossibleAssignmentDicts() if \
+                    a[FOOD_HOUSE_VAR] == TOP_LEFT_VAL and \
+                    a[GHOST_HOUSE_VAR] == TOP_RIGHT_VAL][0]
+
+        leftExpectedValue = leftProb * WON_GAME_REWARD + \
+                            (1 - leftProb) * GHOST_COLLISION_REWARD
+        rightExpectedValue = (1 - leftProb) * WON_GAME_REWARD + \
+                             leftProb * GHOST_COLLISION_REWARD
 
         return leftExpectedValue, rightExpectedValue
 
@@ -436,13 +444,9 @@ class VPIAgent(BayesAgent):
         You can use your implementation of getExplorationProbsAndOutcomes to
         determine the expected value of acting with this extra evidence.
         """
-
-        expectedValue = 0
-
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
-        return expectedValue
+        return sum([p * max(self.computeEnterValues(e, enterEliminationOrder)) \
+                for (p, e) in self.getExplorationProbsAndOutcomes(evidence)])
 
     def getAction(self, gameState):
 
